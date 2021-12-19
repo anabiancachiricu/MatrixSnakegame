@@ -39,21 +39,30 @@ int indexSettings = 0;
 int indexAlphabet = 0;
 
 String menuItems[] = {"> New Game", "> Highscores", "> Settings", "> About"};
-String aboutItems[] = {"~ Snake Game", "~ by Bianca Chiricu", "~ github", "> Back to menu"};
+String aboutItems[] = {"~ Snake Game", "~ by Bianca Chiricu", "~ https://github.com/anabiancachiricu/MatrixSnakegame", "> Back to menu"};
 String settingsItems[] = {"~ Starting level", "~ LCD Contrast", "~ LCD Brightness",  "~ Matrix Brightness", "~Set name", "> Back to menu"};
 String difficultyItems[] = {"Easy", "Medium", "Hard"};
 char alphabet[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 /////////////////0    1     2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   19   20   21   22   23   24   25
-int currentNamePositions[3];
+
 int currentSegment = 0;
 String currentMenu = "menu";
 int currentDifficultyIndex = 0;
+bool displayChanged = false;
+int segmentValue[4] =
+{
+  0, 0, 0, 0
+};
+char currentName[8] =
+{
+  'a', 'a', 'a', 'a', 'b', 'a', 'c', 'k'
+};
 
 int currentBrightnessLCD = 128;
 const int minBrightness = 0;
 const int maxBrightness = 255;
 const int decreaseBrightness = 10;
-
+const int debounceInterval = 50;
 int currentContrastLCD = 50;
 const int minContrast = 0;
 const int maxContrast = 255;
@@ -71,10 +80,16 @@ byte yLastPos = 0;
 
 byte xCurrentPos = 0;
 byte yCurrentPos = 0;
+
 byte xLastFoodPos = 0;
 byte yLastFoodPos = 0;
 byte xNewFoodPos = 0;
 byte yNewFoodPos = 0;
+
+byte xLastTrapPos = 0;
+byte yLastTrapPos = 0;
+byte xNewTrapPos = 0;
+byte yNewTrapPos = 0;
 
 const byte moveInterval = 100;
 unsigned long long lastMoved = 0;
@@ -106,8 +121,8 @@ byte matrixByte[matrixSize] = {
   B00000000
 };
 
-int score=0;
-
+int score = 0;
+const int segmentsCount = 4;
 LiquidCrystal lcd(RS, enable, d4, d5, d6, d7);
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
 
@@ -118,7 +133,6 @@ void setup() {
   pinMode(pinY, INPUT);
   pinMode(pinSW, INPUT_PULLUP);
   pinMode(pinBrightnessLCD, OUTPUT);
-
   attachInterrupt(digitalPinToInterrupt(pinSW), handleInterrupt, FALLING);
   analogWrite(pinBrightnessLCD, currentBrightnessLCD);
   //analogWrite(pinContrastLCD, currentContrastLCD);
@@ -135,7 +149,8 @@ void setup() {
 
 }
 
-void loop() {
+void loop() 
+{
 
   if (currentMenu == "menu")
   {
@@ -157,7 +172,7 @@ void loop() {
   //  {
   //    displayContrastLCD();
   //  }
-  // game();
+  //game();
   else if (currentMenu == "MatrixBrightness")
   {
     displayBrightnessMatrix();
@@ -170,10 +185,14 @@ void loop() {
   {
     game();
   }
-  //  else if (currentMenu == "setName")
-  //  {
-  //    displaySetName();
-  //  }
+  else if (currentMenu == "setName")
+  {
+    interruptBlink();
+  }
+  else if (currentMenu == "changeName")
+  {
+    setName();
+  }
 
 }
 
@@ -474,14 +493,14 @@ void pressButton()
                 lcd.clear();
                 displaystartingLevel();
               }
-              //              else
-              //              {
-              //                if (indexSettings == 4)
-              //                {
-              //                  lcd.clear();
-              //                  displaySetName();
-              //                }
-              //              }
+              else
+              {
+                if (indexSettings == 4)
+                {
+                  lcd.clear();
+                  setName();
+                }
+              }
             }
           }
         }
@@ -510,6 +529,25 @@ void pressButton()
           {
             lcd.clear();
             displaySettings();
+          }
+
+          else
+          {
+            if (currentMenu == "changeName")
+            {
+              if (currentSegment < 4)
+              {
+                lcd.clear();
+                setName();
+              }
+              else
+              {
+                lcd.clear();
+                displaySettings();
+              }
+
+
+            }
           }
         }
       }
@@ -555,73 +593,153 @@ void displayBrightnessLCD()
   }
 }
 
-//void displaySetName()
-//{
-//  currentMenu = "setName";
-//  xValue = analogRead(pinX);
-//  yValue = analogRead(pinY);
-//
-//  if (yValue > maxThreshold && joyMoved == false)
-//  {
-//    if (currentSegment > 0)
-//    {
-//      currentSegment--;
-//    }
-//    else
-//    {
-//      currentSegment = 2;
-//    }
-//    joyMovedY = true;
-//  }
-//
-//  if (yValue < minThreshold && joyMoved == false)
-//  {
-//    if (currentSegment < 2)
-//    {
-//      currentSegment++;
-//    }
-//    else
-//    {
-//      currentSegment = 0;
-//    }
-//    joyMovedY = true;
-//  }
-//
-//  if (xValue < minThreshold && joyMoved == false)
-//  {
-//    if (currentNamePositions[currentSegment] > 0)
-//    {
-//      currentNamePositions[currentSegment]--;
-//    }
-//    else
-//    {
-//      currentNamePositions[currentSegment]=25;
-//    }
-//    joyMovedX = true;
-//  }
-//
-//  if (xValue > maxThreshold && joyMoved == false) {
-//     if (currentNamePositions[currentSegment] < 25)
-//    {
-//      currentNamePositions[currentSegment]++;
-//    }
-//    else
-//    {
-//      currentNamePositions[currentSegment]=0;
-//    }
-//    joyMovedX = true;
-//  }
-//
-//  if (xValue >= minThreshold && xValue <= maxThreshold)
-//  {
-//    joyMoved = false;
-//  }
-//  if (yValue >= minThreshold && yValue <= maxThreshold)
-//  {
-//    joyMoved = false;
-//  }
-//
-//}
+void setName()
+{
+  currentMenu = "setName";
+  showDigits();
+  if (displayChanged)
+  {
+    changeNumber(currentSegment);
+  }
+  else
+  {
+    changeDisplay();
+  }
+}
+
+void interruptBlink()
+{
+  static unsigned long lastDebounceTime = 0;
+  currentMenu = "changeName";
+  if (millis() - lastDebounceTime > debounceInterval)
+  {
+    displayChanged = !displayChanged;
+    lastDebounceTime = millis();
+  }
+
+  setName();
+}
+
+void showDigit(int displayNumber)
+{
+
+  //delay(5);
+
+  // lcd.begin(16,2);
+  for (int i = 0; i < segmentsCount; i++)
+  {
+    lcd.setCursor(i, 0);
+    lcd.print(currentName[i]);
+  }
+
+
+}
+
+void showDigits()
+{
+  for (int i = 0; i < segmentsCount; i++)
+  {
+    lcd.setCursor(i, 0);
+    lcd.print(alphabet[segmentValue[i]]);
+  }
+  for (int i = 4; i < 8; i++)
+  {
+    Serial.println("here");
+    lcd.setCursor(i - 4, 1);
+    lcd.print(currentName[i]);
+  }
+  if (currentSegment< 4)
+  {
+    lcd.setCursor(currentSegment, 0);
+    lcd.blink();
+  }
+  else
+  {
+    lcd.setCursor(currentSegment-4, 1);
+    lcd.blink();
+  }
+
+}
+
+void changeDisplay()
+{
+  yValue = analogRead(pinY);
+
+  if (yValue > maxThreshold && joyMoved == false)
+  {
+    if (currentSegment > 0)
+    {
+      currentSegment--;
+    }
+    else
+    {
+      currentSegment = 4;
+    }
+    joyMoved = true;
+  }
+
+  if (yValue < minThreshold && joyMoved == false)
+  {
+    if (currentSegment < 4)
+    {
+      currentSegment++;
+    }
+    else
+    {
+      currentSegment = 0;
+    }
+    joyMoved = true;
+  }
+  lcd.setCursor(0, currentSegment);
+  lcd.blink();
+
+  if (yValue >= minThreshold && yValue <= maxThreshold)
+  {
+    joyMoved = false;
+
+  }
+
+}
+
+void changeNumber(int currentSegment)
+{
+  xValue = analogRead(pinX);
+  if (currentSegment < 4)
+  {
+    if (xValue < minThreshold && joyMoved == false)
+    {
+      if (segmentValue[currentSegment] > 0)
+      {
+        segmentValue[currentSegment]--;
+      }
+      else
+      {
+        segmentValue[currentSegment] = 25;
+      }
+      currentName[currentSegment] = alphabet[segmentValue[currentSegment]];
+      joyMoved = true;
+    }
+
+    if (xValue > maxThreshold && joyMoved == false)
+    {
+      if (segmentValue[currentSegment] < 25)
+      {
+        segmentValue[currentSegment]++;
+      }
+      else
+      {
+        segmentValue[currentSegment] = 0;
+      }
+      currentName[currentSegment] = alphabet[segmentValue[currentSegment]];
+      joyMoved = true;
+    }
+
+    if (xValue >= minThreshold && xValue <= maxThreshold)
+    {
+      joyMoved = false;
+    }
+  }
+}
 void displayBrightnessMatrix()
 {
   currentMenu = "MatrixBrightness";
@@ -712,7 +830,11 @@ void game()
   if (matrixChanged == true) {
     // matrix display logic
     updateMatrix();
-    //generateFood();
+    if (xPos == xNewFoodPos && yPos == yNewFoodPos)
+      generateFood();
+    if (score > 30)
+      if (xPos != xNewTrapPos && yPos != yNewTrapPos)
+        generateTrap();
     matrixChanged = false;
   }
 }
@@ -736,6 +858,26 @@ void generateFood() {
   yNewFoodPos = random(0, 8);
   matrix[xLastFoodPos][yLastFoodPos] = 0;
   matrix[xNewFoodPos][yNewFoodPos] = 1;
+  matrixChanged = true;
+}
+
+void generateTrap() {
+  xLastTrapPos = xCurrentPos;
+  yLastTrapPos = yCurrentPos;
+  xNewTrapPos = random(0, 8);
+  yNewTrapPos = random(0, 8);
+
+  matrix[xLastTrapPos][yLastTrapPos] = 0;
+  if ( matrix[xLastTrapPos][yLastTrapPos + 1] == 1)
+    matrix[xLastTrapPos][yLastTrapPos + 1] = 0;
+  else if ( matrix[xLastTrapPos][yLastTrapPos - 1] == 1)
+    matrix[xLastTrapPos][yLastTrapPos - 1] = 0;
+
+  matrix[xNewTrapPos][yNewTrapPos] = 1;
+  if (yNewTrapPos < matrixSize - 1)
+    matrix[xNewTrapPos][yNewTrapPos + 1] = 1;
+  else
+    matrix[xNewTrapPos][yNewTrapPos - 1] = 1;
   matrixChanged = true;
 }
 
@@ -785,25 +927,34 @@ void updatePositions() {
     }
   }
   if (xPos != xLastPos || yPos != yLastPos) {
+
+    if (matrix[xPos][yPos] == 1)
+      score += 3;
+
+    if ((matrix[xPos][yPos] == 1 && matrix[xPos][yPos + 1] == 1) || (matrix[xPos][yPos] == 1 && matrix[xPos][yPos + 1] == 1))
+      dead();
+
     matrixChanged = true;
     matrix[xLastPos][yLastPos] = 0;
     matrix[xPos][yPos] = 1;
+
   }
+
 }
 
 void dead()
 {
   currentMenu = "dead";
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("You hit your");
-   lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("head");
   delay(5000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("And died");
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print("Rest in peace");
   delay(5000);
   lcd.clear();
@@ -811,7 +962,7 @@ void dead()
   lcd.print(score);
   delay(5000);
   displayMenu();
-  
+
 }
 void scrollText(char text[])
 {
