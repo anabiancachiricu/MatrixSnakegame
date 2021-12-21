@@ -40,7 +40,7 @@ int indexAlphabet = 0;
 
 String menuItems[] = {"> New Game", "> Highscores", "> Settings", "> About"};
 String aboutItems[] = {"~ Snake Game", "~ by Bianca Chiricu", "~ https://github.com/anabiancachiricu/MatrixSnakegame", "> Back to menu"};
-String settingsItems[] = {"~ Starting level", "~ LCD Contrast", "~ LCD Brightness",  "~ Matrix Brightness", "~Set name", "> Back to menu"};
+String settingsItems[] = {"~ Starting level", "~ LCD Contrast", "~ LCD Brightness",  "~ Matrix Brightness", "~ Set name", "> Back to menu"};
 String difficultyItems[] = {"Easy", "Medium", "Hard"};
 char alphabet[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 /////////////////0    1     2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   19   20   21   22   23   24   25
@@ -73,8 +73,8 @@ byte matrixBrightness = 2;
 const int minMatrixBrightness = 0;
 const int maxMatrixBrightness = 15;
 
-byte xPos = 0;
-byte yPos = 0;
+byte xPos = 3;
+byte yPos = 4;
 byte xLastPos = 0;
 byte yLastPos = 0;
 
@@ -110,6 +110,8 @@ bool matrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0}
 };
+
+
 byte matrixByte[matrixSize] = {
   B00000000,
   B01000100,
@@ -122,6 +124,7 @@ byte matrixByte[matrixSize] = {
 };
 
 int score = 0;
+int highscore=0;
 const int segmentsCount = 4;
 LiquidCrystal lcd(RS, enable, d4, d5, d6, d7);
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
@@ -183,6 +186,10 @@ void loop()
   }
   else if (currentMenu == "newGame")
   {
+    newGame();
+  }
+  else if (currentMenu == "game")
+  {
     game();
   }
   else if (currentMenu == "setName")
@@ -233,16 +240,6 @@ void intro()
   lcd.print("?");
   delay(5000);
   lcd.clear();
-}
-
-void deadScreen()
-{
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Ups, you died");
-  lcd.setCursor(0, 1);
-  lcd.print("Your score is:");
-  delay(5000);
 }
 
 //game menu
@@ -443,7 +440,7 @@ void pressButton()
     else if (index == 0)
     {
       lcd.clear();
-      game();
+      newGame();
     }
 
   }
@@ -533,7 +530,7 @@ void pressButton()
 
           else
           {
-            if (currentMenu == "changeName")
+            if (currentMenu == "setName")
             {
               if (currentSegment < 4)
               {
@@ -545,8 +542,6 @@ void pressButton()
                 lcd.clear();
                 displaySettings();
               }
-
-
             }
           }
         }
@@ -815,13 +810,26 @@ void displayBrightnessMatrix()
 //    joyMoved = false;
 //  }
 //}
-
-void game()
+void newGame()
 {
-  currentMenu = "newGame";
   lcd.setCursor(0, 0);
   lcd.print("Okaaay, let's go!");
-  lcd.print(score);
+  currentMenu="newGame";
+  xPos=3;
+  yPos=4;
+  score=0;
+  matrix[xPos][yPos]=1;
+  generateFood();
+  game();
+  
+}
+void game()
+{
+  currentMenu = "game";
+  //lcd.clear();
+  //lcd.setCursor(0, 0);
+  //lcd.print("Okaaay, let's go!");
+  //lcd.print(score);
   if (millis() - lastMoved > moveInterval) {
     // game logic
     updatePositions();
@@ -836,6 +844,13 @@ void game()
       if (xPos != xNewTrapPos && yPos != yNewTrapPos)
         generateTrap();
     matrixChanged = false;
+    lcd.clear();
+    for (int i=0; i<4; i++)
+    {
+      lcd.print(currentName[i]);
+    }
+    lcd.print(": ");
+    lcd.print(score);
   }
 }
 
@@ -844,6 +859,7 @@ void updateByteMatrix() {
     lc.setRow(0, row, matrixByte[row]);
   }
 }
+
 void updateMatrix() {
   for (int row = 0; row < matrixSize; row++) {
     for (int col = 0; col < matrixSize; col++) {
@@ -851,6 +867,16 @@ void updateMatrix() {
     }
   }
 }
+
+void turnOffMatrix() {
+  for (int row = 0; row < matrixSize; row++) {
+    for (int col = 0; col < matrixSize; col++) {
+      matrix[row][col]=0;
+    }
+  }
+  updateMatrix();
+}
+
 void generateFood() {
   xLastFoodPos = xCurrentPos;
   yLastFoodPos = yCurrentPos;
@@ -946,6 +972,17 @@ void dead()
 {
   currentMenu = "dead";
   lcd.clear();
+  turnOffMatrix();
+  if (score>highscore)
+  {
+    highscore=score;
+    lcd.setCursor(0,0);
+    lcd.print("You beat your");
+    lcd.setCursor(3, 1);
+    lcd.print("highscore");
+    delay(2000);
+  }
+  lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("You hit your");
   lcd.setCursor(0, 1);
@@ -959,8 +996,10 @@ void dead()
   delay(5000);
   lcd.clear();
   lcd.print("Your score is:");
+  lcd.setCursor(0, 1);
   lcd.print(score);
   delay(5000);
+  lcd.clear();
   displayMenu();
 
 }
