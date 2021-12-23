@@ -48,7 +48,7 @@ byte indexAbout = 0;
 byte indexSettings = 0;
 byte indexAlphabet = 0;
 byte indexHighscore = 0;
-byte indexHTP=0;
+byte indexHTP = 0;
 
 String menuItems[] = {"> New Game", "> Highscores", "> Settings", "> About", "> How to play"};
 String aboutItems[] = {"~ Snake Game", "~ by Bianca Chiricu", "~ https://github.com/anabiancachiricu/MatrixSnakegame", "> Back to menu"};
@@ -132,8 +132,17 @@ byte yNewTrapPos = 0;
 const byte moveInterval = 100;
 unsigned long long lastMoved = 0;
 
-const int trapInterval = 100;
-unsigned long long lastTrap = 0;
+const byte htpInterval = 100;
+unsigned long long htpMoved = 0;
+
+const int trapIntervalMedium = 10000;
+unsigned long long lastTrapMedium = 0;
+
+const int trapIntervalHard = 5000;
+unsigned long long lastTrapHard = 0;
+
+const int foodIntervalHard = 7000;
+unsigned long long lastFoodHard = 0;
 
 const byte matrixSize = 8;
 bool matrixChanged = true;
@@ -198,7 +207,8 @@ void setup()
   //analogWrite(pinContrastLCD, currentContrastLCD);
 
   lcd.begin(16, 2);
-  //intro();
+  intro();
+  lcd.print("move joysttick");
   displayMenu();
   //Serial.begin(9600);
 
@@ -220,10 +230,10 @@ void loop()
   {
     displayAbout();
   }
-//  else if (currentMenu == "howtoplay")
-//  {
-//    displayHowToPlay();
-//  }
+    else if (currentMenu == "howtoplay")
+    {
+      displayHowToPlay();
+    }
   else if (currentMenu == "highscores")
   {
     displayHighscores();
@@ -591,59 +601,47 @@ void displayAbout()
     joyMoved = false;
   }
 }
-//void displayHowToPlay()
-//{
-//  currentMenu = "howtoplay";
-//  String htp[] = {"You can choose", " the difficulty", " from settings.", "EASY", " You go after", " food to gain ", "   points ",
-//                  "MEDIUM", " Each 10 seconds", " a trap appears", " HARD", " The food", " dissappears",
-//                  " after 10 sec", "Move the joystick", " to move and eat", "  GOOD LUCK", "> Go back"
-//                 };
-//  xValue = analogRead(pinX);
-//
-//  if (xValue < minThreshold && joyMoved == false)
-//  {
-//    if (indexHTP > 0) {
-//      indexHTP--;
-//    } else {
-//      indexHTP = 17;
-//    }
-//    joyMoved = true;
-//  }
-//
-//  if (xValue > maxThreshold && joyMoved == false) {
-//    if (indexHTP < 17) {
-//      indexHTP++;
-//    } else {
-//      indexHTP = 0;
-//    }
-//    joyMoved = true;
-//  }
-//
-//  if (joyMoved == true)
-//  {
-//    if (currentSoundIndex == 0)
-//    {
-//      tone(buzzerPin, SCROLL_NOTE, 100);
-//    }
-//    lcd.clear();
-//    lcd.setCursor(0, 0);
-//    lcd.blink();
-//    lcd.print(htp[indexHTP]);
-//    lcd.setCursor(0, 1);
-//    //lcd.clear();
-//    if (indexHTP < 17)
-//      lcd.print(htp[indexHTP + 1]);
-//    else
-//      lcd.print(htp[0]);
-//
-//    lcd.setCursor(0, 0);
-//    lcd.blink();
-//  }
-//
-//  if (xValue >= minThreshold && xValue <= maxThreshold) {
-//    joyMoved = false;
-//  }
-//}
+void displayHowToPlay()
+{
+  currentMenu = "howtoplay";
+  lcd.setCursor(0,0);
+  lcd.print(F("EASY:"));
+  lcd.setCursor(0,1);
+  lcd.print(F("Go after food"));
+  delay(5000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(F("To gain points"));
+  lcd.setCursor(0,1);
+  lcd.print(F("MEDIUM:"));
+  delay(5000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(F("There are traps"));
+  lcd.setCursor(0,1);
+  lcd.print(F("to avoid"));
+  delay(5000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(F("HARD:"));
+  lcd.setCursor(0,1);
+  lcd.print(F("The food"));
+  delay(5000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(F("dissappears"));
+  lcd.setCursor(0,1);
+  lcd.print(F("after 7 sec"));
+  delay(5000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(F("GOOD LUCK"));
+  delay(5000);
+  displayMenu();
+  
+  
+  
+}
 
 //settings menu
 void displaySettings()
@@ -793,11 +791,11 @@ void pressButton()
       lcd.clear();
       displayAbout();
     }
-//    else if (index == 4)
-//    {
-//      lcd.clear();
-//      displayHowToPlay();
-//    }
+        else if (index == 4)
+        {
+          lcd.clear();
+          displayHowToPlay();
+        }
     else if (index == 2)
     {
       lcd.clear();
@@ -1310,17 +1308,18 @@ void newGame()
 void game()
 {
   currentMenu = "game";
-
   if (millis() - lastMoved > moveInterval) {
     // game logic
     updatePositions();
     lastMoved = millis();
+
   }
 
   if (matrixChanged == true)
   {
     // matrix display logic
     updateMatrix();
+    
     if (xPos == xNewFoodPos && yPos == yNewFoodPos)
     {
       if (currentSoundIndex == 0)
@@ -1329,12 +1328,29 @@ void game()
       }
       generateFood();
     }
-    if (score > 30)
+    if (score > 30 && score < 60)
     {
-      if (millis() - lastTrap > trapInterval)
+      if (millis() - lastTrapMedium > trapIntervalMedium)
       {
         generateTrap();
-        lastTrap = millis();
+        lastTrapMedium = millis();
+      }
+    }
+    else
+    {
+      if (score > 60)
+      {
+        if (millis() - lastTrapHard > trapIntervalHard)
+        {
+          generateTrap();
+          lastTrapHard = millis();
+        }
+        if (millis() - lastFoodHard > foodIntervalHard)
+        {
+          generateFood();
+          lastFoodHard = millis();
+        }
+
       }
     }
 
@@ -1386,8 +1402,8 @@ void turnOnMatrix() {
 
 void generateFood()
 {
-  xLastFoodPos = xCurrentPos;
-  yLastFoodPos = yCurrentPos;
+  xLastFoodPos = xNewFoodPos;
+  yLastFoodPos = yNewFoodPos;
   xNewFoodPos = random(0, 8);
   yNewFoodPos = random(0, 8);
   matrix[xLastFoodPos][yLastFoodPos] = 0;
@@ -1397,9 +1413,9 @@ void generateFood()
 
 void generateTrap()
 {
-  xLastTrapPos = xCurrentPos;
-  yLastTrapPos = yCurrentPos;
-  xxLastTrapPos = xCurrentPos;
+  xLastTrapPos = xNewTrapPos;
+  yLastTrapPos = yNewTrapPos;
+  xxLastTrapPos = xxNewTrapPos;
 
   matrix[xLastTrapPos][yLastTrapPos] = 0;
   matrix[xxLastTrapPos][yLastTrapPos] = 0;
@@ -1508,6 +1524,7 @@ void dead()
     lcd.print(F("You reached the"));
     lcd.setCursor(7, 1);
     lcd.print(F("top 3"));
+    delay(5000);
     updatedHighscore = 0;
   }
   lcd.clear();
