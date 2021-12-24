@@ -1,43 +1,61 @@
+/*This is a new approach on the classical snake game.
+  The user can play in 3 different ways with 3 different difficulties(easy, medium and hard). The difficulty can be selected from menu, but it also increases along wiith the score (0-30-> easy, 30-60-> medium and >60-> hard).
+  When starting the game, the brightness for the LCD and for the matrix are set based on the the values saved in EEPROM. Also, the names and the highscores are read from EEPROM.
+  In loop function it is checked what the current menu is and the current menu and it is diaplayed.
+  The newgame function initialises the values for the game, then goes to the function game, that is the way the game is played. If the difficulty is easy, the user gains points by moving through the matrix without reaching the walls and extra points for eating the food. If the strating level is set to medium or the score is higher then 30, there are some traps that move in a 10 seconds interval. The game ends if the snake bumps into one trap. If the game is hard, the food also moves in 7 secodds and the traps in 5 seconds.
+  When game ends, the function dead is called and the end message is displyed.
+  The function pressButton verifies the position in which the user is and based on the currentMenu and the index and then displayes the right menu.
+  The functions displayMenu, displayAbout, displayHowToPlay, diaplayHighscores, displaySettings, displayBrightnessLCD, displayBrightnessMatrix, displayStartingLevel and displaySoundState are used to show the desired menu.
+  In function setName, the user can set the 4 name he wants to use.
+  In function resetHighscore, the highscores and names are reset to 0 and "aaaa".
+  The function setSoundState set the sound to on or off.
+  Functions displayBrightnessLCD, displayBrightnessMatrix are used to set the brightness for the LCD and the matrix.
+  Function displayAbout shows information about the game and the dunction displayHowToPlay shows a quick tutorial about the levels of the game.*/
+
 #include <LiquidCrystal.h>
 #include <EEPROM.h>
 #include "LedControl.h"
 
+//declare the notes used for basic sounds
 #define SCROLL_NOTE 10
 #define BUTTON_NOTE 5000
 #define EAT_NOTE 2500
-#define DEAD_NOTE 100 // duration=500
+#define DEAD_NOTE 100
 
 //declare buzzer pin
-#define buzzerPin 5
-#define buzzerTone 1000
+#define BUZZERPIN 5
+#define BUZZERTONE 1000
 
 //declare matrix pins
-#define dinPin 12
-#define clockPin 11
-#define loadPin 10
+#define DINPIN 12
+#define CLOCKPIN 11
+#define LOADPIN 10
 
 //declare diaplay pins
 #define RS 13
-#define enable 6
-#define d4 7
-#define d5 4
-#define d6 3
-#define d7 8
-#define pinBrightnessLCD 9
+#define ENABLE 6
+#define D4 7
+#define D5 4
+#define D6 3
+#define D7 8
+#define PINBRIGHTNESSLCD 9
 //const int pinContrastLCD = 5;
 
 //decalre joystick pins
-#define pinSW  2
-#define pinX  A0
-#define pinY  A1
+#define PINSW  2
+#define PINX  A0
+#define PINY  A1
 
 bool swState = LOW;
 bool lastSwState = LOW;
+
 int xValue = 0;
 int yValue = 0;
+
 bool joyMoved = false;
 bool joyMovedX = false;
 bool joyMovedY = false;
+
 int digit = 0;
 int minThreshold = 400;
 int minThresholdGame = 200;
@@ -51,18 +69,18 @@ byte indexHighscore = 0;
 byte indexHTP = 0;
 
 String menuItems[] = {"> New Game", "> Highscores", "> Settings", "> About", "> How to play"};
-String aboutItems[] = {"~ Snake Game", "~ by Bianca Chiricu", "~ https://github.com/anabiancachiricu/MatrixSnakegame", "> Back to menu"};
+String aboutItems[] = {"   Snake Game", "~ by Bianca Chiricu", "~ https://github.com/anabiancachiricu/MatrixSnakegame", "> Back to menu"};
 String settingsItems[] = {"~ Starting level", "~ LCD Contrast", "~ LCD Brightness",  "~ Matrix Brightness", "~ Set name", "~ Reset Highscore", "~ Set Sound", "> Back to menu"};
 String difficultyItems[] = {"Easy", "Medium", "Hard"};
 String soundItems[] = {"On", "Off"};
 char alphabet[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
-/////////////////0    1     2    3    4    5    6    7    8    9    10   11   12   13   14   15   16   17   18   19   20   21   22   23   24   25
 
 byte currentSegment = 0;
 String currentMenu = "menu";
 byte currentDifficultyIndex = 0;
 byte currentSoundIndex = 0;
 bool displayChanged = false;
+
 int segmentValue[4] =
 {
   0, 0, 0, 0
@@ -75,28 +93,37 @@ char currentName[8] =
 const int brightnessLCDAddress = 0;
 const int contrastLCDAddress = 1;
 const int brightnessMatrixAddress = 2;
-const int highscoresAddress[3] = {
+
+const int highscoresAddress[3] =
+{
   3, 5, 7
 };
-const int nameAddress[3] = {
+const int nameAddress[3] =
+{
   9, 13, 17
 };
-int highscores[3] = {
+int highscores[3] =
+{
   0, 0, 0
 };
+
 const int highscoresNumber = 3;
 const int nameLength = 4;
 const int nameCharacters = 12;
-char names[12] = {
+
+char names[12] =
+{
   'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a'
 };
-bool updatedHighscore = 0;
 
+bool updatedHighscore = 0;
 byte currentBrightnessLCD = 128;
+
 const byte minBrightness = 0;
 const byte maxBrightness = 255;
 const byte decreaseBrightness = 10;
 const byte debounceInterval = 50;
+
 byte currentContrastLCD = 50;
 const byte minContrast = 0;
 const byte maxContrast = 255;
@@ -150,7 +177,8 @@ bool matrixChanged = true;
 const int interruptCycle = 200;
 volatile unsigned long long lastInterrupt = 0;
 
-bool matrix[matrixSize][matrixSize] = {
+bool matrix[matrixSize][matrixSize] =
+{
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
@@ -161,7 +189,8 @@ bool matrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0}
 };
 
-bool trapsMatrix[matrixSize][matrixSize] = {
+bool trapsMatrix[matrixSize][matrixSize] =
+{
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, 0, 0},
@@ -172,8 +201,8 @@ bool trapsMatrix[matrixSize][matrixSize] = {
   {0, 0, 0, 0, 0, 0, 0, 0}
 };
 
-
-byte matrixByte[matrixSize] = {
+byte matrixByte[matrixSize] =
+{
   B00000000,
   B01000100,
   B00101000,
@@ -183,45 +212,41 @@ byte matrixByte[matrixSize] = {
   B00000000,
   B00000000
 };
+
 const int minScore = 0;
 const char chr = 'a';
 
 int score = 0;
 int highscore = 0;
 const byte segmentsCount = 4;
-LiquidCrystal lcd(RS, enable, d4, d5, d6, d7);
-LedControl lc = LedControl(dinPin, clockPin, loadPin, 1);
+
+LiquidCrystal lcd(RS, ENABLE, D4, D5, D6, D7);
+LedControl lc = LedControl(DINPIN, CLOCKPIN, LOADPIN, 1);
 
 void setup()
 {
   // set up the LCD's number of columns and rows:
-
   initialize();
-
-  pinMode(pinX, INPUT);
-  pinMode(pinY, INPUT);
-  pinMode(pinSW, INPUT_PULLUP);
-  pinMode(pinBrightnessLCD, OUTPUT);
-  attachInterrupt(digitalPinToInterrupt(pinSW), handleInterrupt, FALLING);
-  analogWrite(pinBrightnessLCD, currentBrightnessLCD);
+  pinMode(PINX, INPUT);
+  pinMode(PINY, INPUT);
+  pinMode(PINSW, INPUT_PULLUP);
+  pinMode(PINBRIGHTNESSLCD, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(PINSW), handleInterrupt, FALLING);
+  analogWrite(PINBRIGHTNESSLCD, currentBrightnessLCD);
   //analogWrite(pinContrastLCD, currentContrastLCD);
-
   lcd.begin(16, 2);
   intro();
-  lcd.print("move joysttick");
+  lcd.print("move joystick");
   displayMenu();
-  //Serial.begin(9600);
-
   lc.shutdown(0, false);
   lc.setIntensity(0, matrixBrightness);
   lc.clearDisplay(0);
   matrix[xPos][yPos] = 1;
-
 }
 
+//verify which menu to display
 void loop()
 {
-
   if (currentMenu == "menu")
   {
     displayMenu();
@@ -230,10 +255,11 @@ void loop()
   {
     displayAbout();
   }
-    else if (currentMenu == "howtoplay")
-    {
-      displayHowToPlay();
-    }
+  else if (currentMenu == "howtoplay")
+  {
+    displayHowToPlay();
+    displayMenu();
+  }
   else if (currentMenu == "highscores")
   {
     displayHighscores();
@@ -282,9 +308,9 @@ void loop()
   {
     displayResetHighscore();
   }
-
 }
 
+//initialize the brightness for lcd and matrix, the contrast for LCD and the highscores and names with values saved in EEPROM
 void initialize()
 {
   currentBrightnessLCD = EEPROM.read(brightnessLCDAddress);
@@ -298,9 +324,9 @@ void initialize()
   {
     names[j] = (char) EEPROM.read(nameAddress[0] + j);
   }
-
 }
 
+//function to save an int(2 bytes) in EEPROM
 void write2BytesEEPROM(int address, int number)
 {
   byte byte1 = (number >> 8) & 0xFF;
@@ -309,6 +335,7 @@ void write2BytesEEPROM(int address, int number)
   EEPROM.update(address + 1, byte2);
 }
 
+//function to read an int from EEPROM
 int read2BytesEEPROM(int address)
 {
   byte byte1 = EEPROM.read(address);
@@ -317,6 +344,7 @@ int read2BytesEEPROM(int address)
   return result;
 }
 
+//function to save name(4 chars) in EEPROM
 void writeNameEEPROM(int address, char currentName[])
 {
   for (int i = 0; i < nameLength; i++)
@@ -325,6 +353,8 @@ void writeNameEEPROM(int address, char currentName[])
   }
 }
 
+//function to update the highscores
+//verify if the current score is bigger than one of the top 3 and update it on the right position
 void updateHighscores(int score)
 {
   if (score > highscores[0])
@@ -341,6 +371,10 @@ void updateHighscores(int score)
       write2BytesEEPROM(highscoresAddress[i], highscores[i]);
     }
     writeNameEEPROM(nameAddress[0], currentName);
+    for (int i = 0; i < nameLength; i++)
+    {
+      names[i] = currentName[i];
+    }
     updatedHighscore = 1;
   }
   else
@@ -358,6 +392,10 @@ void updateHighscores(int score)
         write2BytesEEPROM(highscoresAddress[i], highscores[i]);
       }
       writeNameEEPROM(nameAddress[1], currentName);
+      for (int i = 4; i < 2 * nameLength; i++)
+      {
+        names[i] = currentName[i-4];
+      }
       updatedHighscore = 1;
     }
     else
@@ -370,13 +408,17 @@ void updateHighscores(int score)
           write2BytesEEPROM(highscoresAddress[i], highscores[i]);
         }
         writeNameEEPROM(nameAddress[2], currentName);
+        for (int i = 8; i < 3 * nameLength; i++)
+        {
+          names[i] = currentName[i-8];
+        }
         updatedHighscore = 1;
       }
     }
   }
 }
 
-//introduction
+//introduction message to display when the game is started (or reset)
 void intro()
 {
   lcd.begin(16, 2);
@@ -415,12 +457,16 @@ void intro()
   lcd.clear();
 }
 
-//game menu
+//function to display the menu
+//function to navigate through menu
 void displayMenu()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "menu";
-  xValue = analogRead(pinX);
+  turnOffMatrix();
 
+  xValue = analogRead(PINX);
+  //navigate though menu
   if (xValue < minThreshold && joyMoved == false)
   {
     if (index > 0) {
@@ -430,22 +476,26 @@ void displayMenu()
     }
     joyMoved = true;
   }
-
-  if (xValue > maxThreshold && joyMoved == false) {
-    if (index < 4) {
+  if (xValue > maxThreshold && joyMoved == false)
+  {
+    if (index < 4)
+    {
       index++;
-    } else {
+    }
+    else
+    {
       index = 0;
     }
     joyMoved = true;
   }
-
   if (joyMoved == true)
   {
+    //play sound when navigating through menu
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
+    //display the menu on LCD
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.blink();
@@ -456,46 +506,54 @@ void displayMenu()
       lcd.print(menuItems[index + 1]);
     else
       lcd.print(menuItems[0]);
-
+    //blink on the current position
     lcd.setCursor(0, 0);
     lcd.blink();
   }
-
-  if (xValue >= minThreshold && xValue <= maxThreshold) {
+  if (xValue >= minThreshold && xValue <= maxThreshold)
+  {
     joyMoved = false;
   }
 }
 
+//function to display the highsocres
+//function to navigate through highscores
 void displayHighscores()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "highscores";
-  xValue = analogRead(pinX);
-
+  //navigate through highscores
+  xValue = analogRead(PINX);
   if (xValue < minThreshold && joyMoved == false)
   {
-    if (indexHighscore > 0) {
+    if (indexHighscore > 0)
+    {
       indexHighscore--;
-    } else {
+    }
+    else
+    {
       indexHighscore = 3;
     }
     joyMoved = true;
   }
-
   if (xValue > maxThreshold && joyMoved == false)
   {
-    if (indexHighscore < 3) {
+    if (indexHighscore < 3)
+    {
       indexHighscore++;
-    } else {
+    }
+    else
+    {
       indexHighscore = 0;
     }
     joyMoved = true;
   }
-
   if (joyMoved == true)
   {
+    //play sound when navigatiing through highscores
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -514,7 +572,7 @@ void displayHighscores()
       lcd.print(F("Back"));
     }
     lcd.setCursor(0, 1);
-    //lcd.clear();
+    //diisplay the first 3 highscores and the back button (to go back to the menu)
     if (indexHighscore < 2)
     {
       for (int i = nameLength * (indexHighscore + 1); i < nameLength * (indexHighscore + 1) + nameLength; i++)
@@ -539,49 +597,58 @@ void displayHighscores()
         lcd.print(":");
         lcd.print(highscores[0]);
       }
-
     }
+    //blink on the current position
     lcd.setCursor(0, 0);
     lcd.blink();
   }
-
-  if (xValue >= minThreshold && xValue <= maxThreshold) {
+  if (xValue >= minThreshold && xValue <= maxThreshold)
+  {
     joyMoved = false;
   }
-
 }
 
 //about menu
+//function to display the about menu
+//function to navigate through the about menu
 void displayAbout()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "about";
-  xValue = analogRead(pinX);
-
+  //navigate through about menu
+  xValue = analogRead(PINX);
   if (xValue < minThreshold && joyMoved == false)
   {
-    if (indexAbout > 0) {
+    if (indexAbout > 0)
+    {
       indexAbout--;
-    } else {
+    }
+    else
+    {
       indexAbout = 3;
     }
     joyMoved = true;
   }
-
-  if (xValue > maxThreshold && joyMoved == false) {
-    if (indexAbout < 3) {
+  if (xValue > maxThreshold && joyMoved == false)
+  {
+    if (indexAbout < 3)
+    {
       indexAbout++;
-    } else {
+    }
+    else
+    {
       indexAbout = 0;
     }
     joyMoved = true;
   }
-
   if (joyMoved == true)
   {
+    //play sound when navigating through about menu
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
+    //display the about menu and the back button
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.blink();
@@ -589,92 +656,102 @@ void displayAbout()
     lcd.setCursor(0, 1);
     //lcd.clear();
     if (indexAbout < 3)
+    {
       lcd.print(aboutItems[indexAbout + 1]);
+    }
     else
+    {
       lcd.print(aboutItems[0]);
-
+    }
     lcd.setCursor(0, 0);
     lcd.blink();
   }
-
-  if (xValue >= minThreshold && xValue <= maxThreshold) {
+  if (xValue >= minThreshold && xValue <= maxThreshold)
+  {
     joyMoved = false;
   }
 }
+
+//function to display one short tutorial about the game levels and how to play
 void displayHowToPlay()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "howtoplay";
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("EASY:"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(F("Go after food"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("To gain points"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(F("MEDIUM:"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("There are traps"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(F("to avoid"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("HARD:"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(F("The food"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("dissappears"));
-  lcd.setCursor(0,1);
+  lcd.setCursor(0, 1);
   lcd.print(F("after 7 sec"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print(F("GOOD LUCK"));
-  delay(5000);
-  displayMenu();
-  
-  
-  
+  delay(3000);
+  lcd.clear();
 }
 
 //settings menu
+//function to display the settings menu
+//function to navigate through the settings menu
 void displaySettings()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "settings";
-  xValue = analogRead(pinX);
-
+  //navigate through settings
+  xValue = analogRead(PINX);
   if (xValue < minThreshold && joyMoved == false)
   {
-    if (indexSettings > 0) {
+    if (indexSettings > 0)
+    {
       indexSettings--;
-    } else {
+    }
+    else
+    {
       indexSettings = 8;
     }
     joyMoved = true;
-
   }
-
-  if (xValue > maxThreshold && joyMoved == false) {
-    if (indexSettings < 8) {
+  if (xValue > maxThreshold && joyMoved == false)
+  {
+    if (indexSettings < 8)
+    {
       indexSettings++;
-    } else {
+    }
+    else
+    {
       indexSettings = 0;
     }
     joyMoved = true;
-
   }
-
   if (joyMoved == true)
   {
+    //play sound when navigating through settings
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -683,107 +760,136 @@ void displaySettings()
     lcd.setCursor(0, 1);
     //lcd.clear();
     if (indexSettings < 8)
+    {
       lcd.print(settingsItems[indexSettings + 1]);
+    }
     else
+    {
       lcd.print(settingsItems[0]);
-
+    }
+    //blink on the current position
     lcd.setCursor(0, 0);
     lcd.blink();
   }
-
-  if (xValue >= minThreshold && xValue <= maxThreshold) {
+  if (xValue >= minThreshold && xValue <= maxThreshold)
+  {
     joyMoved = false;
   }
 }
 
+//starting level (difficulty) menu
+//function to display the difficulty menu
+//function to navigate through the difficulty menu
 void displaystartingLevel()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "startingLevel";
-  xValue = analogRead(pinX);
-
+  //navigate to selecct the starting level
+  xValue = analogRead(PINX);
   if (xValue < minThreshold && joyMoved == false)
   {
-    if (currentDifficultyIndex > 0) {
+    if (currentDifficultyIndex > 0)
+    {
       currentDifficultyIndex--;
-    } else {
+    }
+    else
+    {
       currentDifficultyIndex = 2;
     }
     joyMoved = true;
   }
-
-  if (xValue > maxThreshold && joyMoved == false) {
-    if (currentDifficultyIndex < 2) {
+  if (xValue > maxThreshold && joyMoved == false)
+  {
+    if (currentDifficultyIndex < 2)
+    {
       currentDifficultyIndex++;
-    } else {
+    }
+    else
+    {
       currentDifficultyIndex = 0;
     }
     joyMoved = true;
   }
-
   if (joyMoved == true)
   {
+    //play sound when navigating though difficulty menu
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
+    //display only the current difficulty in order to select it and exit to the settings
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.blink();
     lcd.print(difficultyItems[currentDifficultyIndex]);
   }
-
-  if (xValue >= minThreshold && xValue <= maxThreshold) {
+  if (xValue >= minThreshold && xValue <= maxThreshold)
+  {
     joyMoved = false;
   }
 }
 
+//menu to select the sond (on or off)
+//function to display the sound menu
+//function to navigate through the sound menu
 void displaySoundState()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "setSound";
-  xValue = analogRead(pinX);
-
+  //navigate to select if the sun is turned on or off
+  xValue = analogRead(PINX);
   if (xValue < minThreshold && joyMoved == false)
   {
-    if (currentSoundIndex > 0) {
+    if (currentSoundIndex > 0)
+    {
       currentSoundIndex--;
-    } else {
+    }
+    else
+    {
       currentSoundIndex = 1;
     }
     joyMoved = true;
   }
-
-  if (xValue > maxThreshold && joyMoved == false) {
-    if (currentSoundIndex < 1) {
+  if (xValue > maxThreshold && joyMoved == false)
+  {
+    if (currentSoundIndex < 1)
+    {
       currentSoundIndex++;
-    } else {
+    }
+    else
+    {
       currentSoundIndex = 0;
     }
     joyMoved = true;
   }
-
   if (joyMoved == true)
   {
+    //play sound when navigating through the sound menu
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
+    //display the current sound state
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.blink();
     lcd.print(soundItems[currentSoundIndex]);
   }
-
-  if (xValue >= minThreshold && xValue <= maxThreshold) {
+  if (xValue >= minThreshold && xValue <= maxThreshold)
+  {
     joyMoved = false;
   }
 }
 
+//function to check which menu to display when pressing the button
 void pressButton()
 {
+  //if the sound is on play sound when pressing the button
   if (currentSoundIndex == 0)
   {
-    tone(buzzerPin, BUTTON_NOTE, 50);
+    tone(BUZZERPIN, BUTTON_NOTE, 50);
   }
+  //verify where the user is (in which menu and on what position) when the button is pressed and display the right menu
   if (currentMenu == "menu")
   {
     if (index == 3)
@@ -791,11 +897,11 @@ void pressButton()
       lcd.clear();
       displayAbout();
     }
-        else if (index == 4)
-        {
-          lcd.clear();
-          displayHowToPlay();
-        }
+    else if (index == 4)
+    {
+      lcd.clear();
+      displayHowToPlay();
+    }
     else if (index == 2)
     {
       lcd.clear();
@@ -811,7 +917,6 @@ void pressButton()
       lcd.clear();
       newGame();
     }
-
   }
   else
   {
@@ -853,7 +958,6 @@ void pressButton()
               //              lcd.clear();
               //              displayContrastLCD();
               //            }
-
               if (indexSettings == 3)
               {
                 lcd.clear();
@@ -879,6 +983,7 @@ void pressButton()
                     {
                       lcd.clear();
                       displayResetHighscore();
+                      displayMenu();
                     }
                     else
                     {
@@ -896,13 +1001,9 @@ void pressButton()
         }
         else if (currentMenu == "howtoplay")
         {
-          if (indexHTP == 17)
-          {
-            lcd.clear();
-            displayMenu();
-          }
+          lcd.clear();
+          displayMenu();
         }
-
         else
         {
           if (currentMenu == "LCDBrightness")
@@ -933,7 +1034,6 @@ void pressButton()
               lcd.clear();
               displaySettings();
             }
-
             else
             {
               if (currentMenu == "setName")
@@ -957,11 +1057,13 @@ void pressButton()
   }
 }
 
+//function to set the brightness for the LCD display
 void displayBrightnessLCD()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "LCDBrightness";
-  xValue = analogRead(pinX);
-
+  //set the brightness using the joystick
+  xValue = analogRead(PINX);
   if (xValue < minThreshold && joyMoved == false)
   {
     if (currentBrightnessLCD - decreaseBrightness > minBrightness)
@@ -970,7 +1072,6 @@ void displayBrightnessLCD()
     }
     joyMoved = true;
   }
-
   if (xValue > maxThreshold && joyMoved == false) {
     if (currentBrightnessLCD + decreaseBrightness < maxBrightness)
     {
@@ -978,31 +1079,34 @@ void displayBrightnessLCD()
     }
     joyMoved = true;
   }
-
   if (joyMoved == true)
   {
+    //if the sound is on, play a sound when selecting the brightness value
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
+    //read from EEPROM the value of the brightness and update the value if changed
     if (EEPROM.read(brightnessLCDAddress) != currentBrightnessLCD)
     {
       EEPROM.update(brightnessLCDAddress, currentBrightnessLCD);
     }
-    analogWrite(pinBrightnessLCD, currentBrightnessLCD);
+    //set the brightness of the LCD and display the current value
+    analogWrite(PINBRIGHTNESSLCD, currentBrightnessLCD);
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(F("Current brightness:"));
     lcd.setCursor(6, 1);
     lcd.print(currentBrightnessLCD);
   }
-
   if (xValue >= minThreshold && xValue <= maxThreshold)
   {
     joyMoved = false;
   }
 }
 
+//function for setting name
+//the name can have 4 chars and it is set using the joystick
 void setName()
 {
   currentMenu = "setName";
@@ -1026,25 +1130,19 @@ void interruptBlink()
     displayChanged = !displayChanged;
     lastDebounceTime = millis();
   }
-
   setName();
 }
 
 void showDigit(int displayNumber)
 {
-
-  //delay(5);
-
-  // lcd.begin(16,2);
   for (int i = 0; i < segmentsCount; i++)
   {
     lcd.setCursor(i, 0);
     lcd.print(currentName[i]);
   }
-
-
 }
 
+//function used for showing the name and the back button
 void showDigits()
 {
   for (int i = 0; i < segmentsCount; i++)
@@ -1068,13 +1166,12 @@ void showDigits()
     lcd.setCursor(currentSegment - 4, 1);
     lcd.blink();
   }
-
 }
 
+//function to set the current position in the name
 void changeDisplay()
 {
-  yValue = analogRead(pinY);
-
+  yValue = analogRead(PINY);
   if (yValue > maxThreshold && joyMoved == false)
   {
     if (currentSegment > 0)
@@ -1087,7 +1184,6 @@ void changeDisplay()
     }
     joyMoved = true;
   }
-
   if (yValue < minThreshold && joyMoved == false)
   {
     if (currentSegment < 4)
@@ -1100,20 +1196,20 @@ void changeDisplay()
     }
     joyMoved = true;
   }
+  //blink on the current position
   lcd.setCursor(0, currentSegment);
   lcd.blink();
-
   if (yValue >= minThreshold && yValue <= maxThreshold)
   {
     joyMoved = false;
-
   }
-
 }
 
+//function to set the letter on the current position
 void changeNumber(int currentSegment)
 {
-  xValue = analogRead(pinX);
+  //change the letter on the current position
+  xValue = analogRead(PINX);
   if (currentSegment < 4)
   {
     if (xValue < minThreshold && joyMoved == false)
@@ -1129,7 +1225,6 @@ void changeNumber(int currentSegment)
       currentName[currentSegment] = alphabet[segmentValue[currentSegment]];
       joyMoved = true;
     }
-
     if (xValue > maxThreshold && joyMoved == false)
     {
       if (segmentValue[currentSegment] < 25)
@@ -1143,7 +1238,6 @@ void changeNumber(int currentSegment)
       currentName[currentSegment] = alphabet[segmentValue[currentSegment]];
       joyMoved = true;
     }
-
     if (xValue >= minThreshold && xValue <= maxThreshold)
     {
       joyMoved = false;
@@ -1151,11 +1245,13 @@ void changeNumber(int currentSegment)
   }
 }
 
+//function to set the brightness for the matrix
 void displayBrightnessMatrix()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "MatrixBrightness";
-  xValue = analogRead(pinX);
-
+  //set the brightness using the joystick
+  xValue = analogRead(PINX);
   if (xValue < minThreshold && joyMoved == false)
   {
     if (matrixBrightness  > minMatrixBrightness)
@@ -1164,25 +1260,27 @@ void displayBrightnessMatrix()
     }
     joyMoved = true;
   }
-
-  if (xValue > maxThreshold && joyMoved == false) {
+  if (xValue > maxThreshold && joyMoved == false)
+  {
     if (matrixBrightness < maxMatrixBrightness)
     {
       matrixBrightness ++;
     }
     joyMoved = true;
   }
-
   if (joyMoved == true)
   {
+    //if the sound is on, play a sound when selecting the brightness value
     if (currentSoundIndex == 0)
     {
-      tone(buzzerPin, SCROLL_NOTE, 100);
+      tone(BUZZERPIN, SCROLL_NOTE, 100);
     }
+    //read from EEPROM the value of the brightness and update the value if changed
     if (EEPROM.read(brightnessMatrixAddress) != matrixBrightness)
     {
       EEPROM.update(brightnessMatrixAddress, matrixBrightness);
     }
+    //set the brightness of the matrix and display the current value
     lc.setIntensity(0, matrixBrightness);
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -1191,7 +1289,6 @@ void displayBrightnessMatrix()
     lcd.print(matrixBrightness);
     turnOnMatrix();
   }
-
   if (xValue >= minThreshold && xValue <= maxThreshold)
   {
     joyMoved = false;
@@ -1201,7 +1298,7 @@ void displayBrightnessMatrix()
 //void displayContrastLCD()
 //{
 //  currentMenu = "LCDContrast";
-//  xValue = analogRead(pinX);
+//  xValue = analogRead(PINX);
 //
 //  if (xValue < minThreshold && joyMoved == false)
 //  {
@@ -1224,7 +1321,7 @@ void displayBrightnessMatrix()
 //  {
 //if (currentSoundIndex==0)
 //{
-//  tone(buzzerPin, SCROLL_NOTE, 100);
+//  tone(BUZZERPIN, SCROLL_NOTE, 100);
 //}
 //
 //     if (EEPROM.read(contrastLCDAddress) != currentContrastLCD)
@@ -1245,9 +1342,11 @@ void displayBrightnessMatrix()
 //  }
 //}
 
+//function to reset the highscores and the names ( highscores to 0 and names to "aaaa")
 void displayResetHighscore()
 {
-  currentMenu = ("resetHighscore");
+  //set the currentMenu to know where the user is
+  currentMenu = "resetHighscore";
   highscores[2] = minScore;
   highscores[1] = minScore;
   highscores[0] = minScore;
@@ -1264,27 +1363,34 @@ void displayResetHighscore()
     write2BytesEEPROM(highscoresAddress[i], highscores[i]);
     writeNameEEPROM(nameAddress[i], currentName);
   }
+  //if the sound is set to on, play a soound when resetting the score
   if (currentSoundIndex == 0)
   {
-    tone(buzzerPin, buzzerTone, 500);
+    tone(BUZZERPIN, BUZZERTONE, 500);
   }
+  //display a message when resetting the highscore
   lcd.setCursor(0, 0);
   lcd.print(F("Reseting highscores"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
   lcd.print(F("Reset commplete"));
-  delay(5000);
-  displayMenu();
-
+  delay(3000);
+  //lcd.clear();
+  //displayMenu();
 }
 
+//function to start the game
 void newGame()
 {
+  //display a message when starting the game
   lcd.setCursor(0, 0);
   lcd.print(F("Okaaay, let's go!"));
+  //set the currentMenu to know where the user is
   currentMenu = "newGame";
+  //set the first position for the snake
   xPos = 3;
   yPos = 4;
+  //verify the difficulty to select the starting score
   if (currentDifficultyIndex == 0)
   {
     score = 0;
@@ -1302,32 +1408,39 @@ void newGame()
   }
   matrix[xPos][yPos] = 1;
   generateFood();
+  //continue the game
   game();
-
 }
+
 void game()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "game";
-  if (millis() - lastMoved > moveInterval) {
+  //update the positions
+  if (millis() - lastMoved > moveInterval)
+  {
     // game logic
     updatePositions();
     lastMoved = millis();
-
   }
-
+  //verify if the matrix has changed and update it if true
   if (matrixChanged == true)
   {
     // matrix display logic
     updateMatrix();
-    
+    //verify if the snake position is the same as the food position
+    //if true, eat it and generate another
     if (xPos == xNewFoodPos && yPos == yNewFoodPos)
     {
+      //if sound on, play a sound when eatting
       if (currentSoundIndex == 0)
       {
-        tone(buzzerPin, EAT_NOTE, 75);
+        tone(BUZZERPIN, EAT_NOTE, 75);
       }
       generateFood();
     }
+    //if the score is between 30 and 60, the difficulty is medium
+    //move the trap at a 10 seconds interval
     if (score > 30 && score < 60)
     {
       if (millis() - lastTrapMedium > trapIntervalMedium)
@@ -1338,6 +1451,9 @@ void game()
     }
     else
     {
+      //if the score is above 60, the difficulty is hard
+      //move the trap at a 5 seconds interval
+      //move the food at a 7 seconds interval
       if (score > 60)
       {
         if (millis() - lastTrapHard > trapIntervalHard)
@@ -1350,62 +1466,77 @@ void game()
           generateFood();
           lastFoodHard = millis();
         }
-
       }
     }
-
     matrixChanged = false;
+    //print the current name and the current score on the lcd
     lcd.clear();
-
     for (int i = 0; i < 4; i++)
     {
       lcd.print(currentName[i]);
     }
-
     lcd.print(": ");
     lcd.print(score);
   }
-
 }
 
-void updateByteMatrix() {
-  for (int row = 0; row < matrixSize; row++) {
+//function to update byte matrix
+void updateByteMatrix()
+{
+  for (int row = 0; row < matrixSize; row++)
+  {
     lc.setRow(0, row, matrixByte[row]);
   }
 }
 
-void updateMatrix() {
-  for (int row = 0; row < matrixSize; row++) {
-    for (int col = 0; col < matrixSize; col++) {
+//function to update the matrix
+void updateMatrix()
+{
+  for (int row = 0; row < matrixSize; row++)
+  {
+    for (int col = 0; col < matrixSize; col++)
+    {
       lc.setLed(0, row, col, matrix[row][col]);
     }
   }
 }
 
-void turnOffMatrix() {
-  for (int row = 0; row < matrixSize; row++) {
-    for (int col = 0; col < matrixSize; col++) {
+//function to turn off the whole matrix
+void turnOffMatrix()
+{
+  for (int row = 0; row < matrixSize; row++)
+  {
+    for (int col = 0; col < matrixSize; col++)
+    {
       matrix[row][col] = 0;
     }
   }
   updateMatrix();
 }
 
-void turnOnMatrix() {
-  for (int row = 0; row < matrixSize; row++) {
-    for (int col = 0; col < matrixSize; col++) {
+//function to turn on the whole matrix
+void turnOnMatrix()
+{
+  for (int row = 0; row < matrixSize; row++)
+  {
+    for (int col = 0; col < matrixSize; col++)
+    {
       matrix[row][col] = 1;
     }
   }
   updateMatrix();
 }
 
+//function to generate food
 void generateFood()
 {
+  //update the positions of the last  food generated
   xLastFoodPos = xNewFoodPos;
   yLastFoodPos = yNewFoodPos;
-  xNewFoodPos = random(0, 8);
-  yNewFoodPos = random(0, 8);
+  //generate positions for the new food
+  xNewFoodPos = random(1, 7);
+  yNewFoodPos = random(1, 7);
+  //turn off the last food and turn on the new one
   matrix[xLastFoodPos][yLastFoodPos] = 0;
   matrix[xNewFoodPos][yNewFoodPos] = 1;
   matrixChanged = true;
@@ -1413,20 +1544,22 @@ void generateFood()
 
 void generateTrap()
 {
+  //update the positions of the last  food generated
   xLastTrapPos = xNewTrapPos;
   yLastTrapPos = yNewTrapPos;
   xxLastTrapPos = xxNewTrapPos;
-
+  //turn off the last trap
   matrix[xLastTrapPos][yLastTrapPos] = 0;
   matrix[xxLastTrapPos][yLastTrapPos] = 0;
   trapsMatrix[xLastTrapPos][yLastTrapPos] = 0;
   trapsMatrix[xxLastTrapPos][yLastTrapPos] = 0;
-
+  //generate new trap positions
   xNewTrapPos = random(0, 8);
   yNewTrapPos = random(0, 8);
-
+  //a trap is made up from 2 dots vertically placed
+  //turn on the new trap
   matrix[xNewTrapPos][yNewTrapPos] = 1;
-
+  //set the second dot position to be above or below the first one generated
   if (xNewTrapPos < matrixSize - 1)
   {
     xxNewTrapPos = xNewTrapPos + 1;
@@ -1435,88 +1568,109 @@ void generateTrap()
   {
     xxNewTrapPos = xNewTrapPos - 1;
   }
-
+  //turn on the trap
   matrix[xxNewTrapPos][yNewTrapPos] = 1;
-
   trapsMatrix[xNewTrapPos][yNewTrapPos] = 1;
   trapsMatrix[xxNewTrapPos][yNewTrapPos] = 1;
-
   matrixChanged = true;
-
 }
 
+//function to update the snake position
 void updatePositions()
 {
-  int xValue = analogRead(pinX);
-  int yValue = analogRead(pinY);
+  //move the snake(dot) trough the matrix using the joystick
+  int xValue = analogRead(PINX);
+  int yValue = analogRead(PINY);
   xLastPos = xPos;
   yLastPos = yPos;
-
-  if (xValue < minThresholdGame) {
-    if (xPos < matrixSize - 1) {
+  //update the positions and the score
+  if (xValue < minThresholdGame)
+  {
+    if (xPos <= matrixSize - 1)
+    {
       xPos--;
       score++;
     }
-    else {
-      xPos = matrixSize - 1;
+    else
+    {
+     // xPos = matrixSize - 1;
       dead();
     }
   }
-  if (xValue > maxThreshold) {
-    if (xPos > 0) {
+  if (xValue > maxThreshold)
+  {
+    if (xPos >= 0)
+    {
       xPos++;
       score++;
     }
-    else {
-      xPos = 0;
+    else
+    {
+      //xPos = 0;
       dead();
     }
   }
-  if (yValue > maxThreshold) {
-    if (yPos < matrixSize - 1) {
+  if (yValue >= maxThreshold)
+  {
+    if (yPos < matrixSize - 1)
+    {
       yPos--;
       score++;
     }
-    else {
-      yPos = matrixSize - 1;
+    else
+    {
+     // yPos = matrixSize - 1;
       dead();
     }
   }
-  if (yValue < minThresholdGame) {
-    if (yPos > 0) {
+  if (yValue < minThresholdGame)
+  {
+    if (yPos >= 0)
+    {
       yPos++;
       score++;
     }
-    else {
-      yPos = 0;
+    else
+    {
+     // yPos = 0;
       dead();
     }
   }
+  //veriify if the dot has moved and update the matrix and the score if so
+  //check if the current position is a food or a trap
+  //if it food, the score increases with 3
+  //if it is a trap, the ggame ends
   if (xPos != xLastPos || yPos != yLastPos)
   {
     if (matrix[xPos][yPos] == 1 && trapsMatrix[xPos][yPos] == 0)
+    {
       score += 3;
-
+    }
     if (trapsMatrix[xPos][yPos] == 1 )
+    {
       dead();
-
+    }
+    //turn off the last position and turn on the new one
     matrixChanged = true;
     matrix[xLastPos][yLastPos] = 0;
     matrix[xPos][yPos] = 1;
-
   }
-
 }
 
+//function to show the dead screen on lcd
 void dead()
 {
+  //set the currentMenu to know where the user is
   currentMenu = "dead";
+  //if the sound is on, play a sound when the game ends
   if (currentSoundIndex == 0)
   {
-    tone(buzzerPin, DEAD_NOTE, 500);
+    tone(BUZZERPIN, DEAD_NOTE, 500);
   }
   lcd.clear();
+  //update the highscores
   updateHighscores(score);
+  //verify if the highscores modified, and if true display a message that the user reached the top
   if (updatedHighscore == 1)
   {
     lcd.clear();
@@ -1524,31 +1678,35 @@ void dead()
     lcd.print(F("You reached the"));
     lcd.setCursor(7, 1);
     lcd.print(F("top 3"));
-    delay(5000);
+    delay(3000);
     updatedHighscore = 0;
   }
+  //display the ending message
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("You hit your"));
   lcd.setCursor(0, 1);
   lcd.print(F("head"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("And died"));
   lcd.setCursor(0, 1);
   lcd.print(F("Rest in peace"));
-  delay(5000);
+  delay(3000);
   lcd.clear();
   lcd.print(F("Your score is:"));
   lcd.setCursor(0, 1);
   lcd.print(score);
-  delay(5000);
+  delay(3000);
   lcd.clear();
+  //turn off the matrix and go back to menu
   turnOffMatrix();
   displayMenu();
-
+  turnOffMatrix();
 }
+
+//function to scroll the text
 void scrollText(char text[])
 {
   int unsigned i = 0;
@@ -1559,7 +1717,7 @@ void scrollText(char text[])
     lcd.print(text[i]);
     if (i >= 16)
     {
-      lcd.command(0x18); //Scrolling text to Right
+      lcd.command(0x18);
     }
     delay(300);
     i++;
@@ -1568,9 +1726,13 @@ void scrollText(char text[])
   lcd.clear();
 }
 
-void handleInterrupt() {
+//function to handle the noise and to check if the button was pressed
+void handleInterrupt()
+{
+  //verify if the button was pressed and if true go to pressButton function to display the right menu
   unsigned long long current = millis();
-  if (current - lastInterrupt > interruptCycle) {
+  if (current - lastInterrupt > interruptCycle)
+  {
     lastInterrupt = current;
     pressButton();
   }
