@@ -28,9 +28,10 @@ The game has a main menu, that contains the following:
 - Settings
 - How to play
 Each of them contains also a submenu.
+The values for Brightness for LCD, for matrix, names and highscores are stored in EEPROM.
 
 ## Highscores
-Displays the first 3 highscores and the names of the players that reached them. It also has a back button, to go to main menu.
+Displays the first 3 highscores and the names of the players that reached them. It also has a back button, to go to main menu. The values are stored in EEPROM.
 
 ## About
 Displays information about the game:
