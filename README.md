@@ -57,5 +57,5 @@ Each option of the settings menu opens another menu.
 https://youtu.be/9cXE3XVe6co
 
 # Picture of the setup
-
+![alt text](https://github.com/anabiancachiricu/MatrixSnakegame/blob/main/matrixSetup.jpeg)
 
