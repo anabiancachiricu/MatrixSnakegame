@@ -1,0 +1,13 @@
+This is a new approach on the classical snake game.
+The user can play in 3 different ways with 3 different difficulties(easy, medium and hard). The difficulty can be selected from menu, but it also increases along wiith the score (0-30-> easy, 30-60-> medium and >60-> hard).
+When starting the game, the brightness for the LCD and for the matrix are set based on the the values saved in EEPROM. Also, the names and the highscores are read from EEPROM. 
+In loop function it is checked what the current menu is and the current menu and it is diaplayed.
+The newgame function initialises the values for the game, then goes to the function game, that is the way the game is played. If the difficulty is easy, the user gains points by moving through the matrix without reaching the walls and extra points for eating the food. If the strating level is set to medium or the score is higher then 30, there are some traps that move in a 10 seconds interval. The game ends if the snake bumps into one trap. If the game is hard, the food also moves in 7 secodds and the traps in 5 seconds. 
+When game ends, the function dead is called and the end message is displyed. 
+The function pressButton verifies the position in which the user is and based on the currentMenu and the index and then displayes the right menu. 
+The functions displayMenu, displayAbout, displayHowToPlay, diaplayHighscores, displaySettings, displayBrightnessLCD, displayBrightnessMatrix, displayStartingLevel and displaySoundState are used to show the desired menu. 
+In function setName, the user can set the 4 name he wants to use. 
+In function resetHighscore, the highscores and names are reset to 0 and "aaaa".
+The function setSoundState set the sound to on or off.
+Functions displayBrightnessLCD, displayBrightnessMatrix are used to set the brightness for the LCD and the matrix. 
+Function displayAbout shows information about the game and the dunction displayHowToPlay shows a quick tutorial about the levels of the game.
